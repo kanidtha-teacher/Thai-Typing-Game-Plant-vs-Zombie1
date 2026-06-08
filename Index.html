@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>พืชพิมพ์ vs ซอมบี้</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Kanit',sans-serif;background:#000;min-height:100vh;overflow:hidden;user-select:none;-webkit-user-select:none}
+
+/* ========== SCREENS ========== */
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50}
+.screen.active{display:flex}
+
+/* ========== MAIN MENU ========== */
+#menuScreen {
+  background: url('https://i.postimg.cc/Dz7ytFmJ/1-20260603-121437-0000.png') center/cover no-repeat;
+}
+
+.menu-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end; 
+  padding-bottom: 4vh; 
+}
+
+/* START button */
+.menu-start-wrap {
+  margin-bottom: 2vh; 
+  display: flex;
+  justify-content: center;
+}
+
+.menu-start-img {
+  width: min(315px, 55vw); 
+  cursor: pointer;
+  transition: transform .12s, filter .12s;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 6px 20px rgba(0,0,0,.6));
+  position: relative;
+  z-index: 10; 
+}
+.menu-start-img:active { transform: scale(.94); }
+
+/* ปุ่ม 2 ล่าง — ตั้งค่า / วิธีเล่น */
+.menu-bottom {
+  display: flex;
+  flex-direction: row;
+  gap: clamp(6px, 1.5vw, 15px); 
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 0 10px;
+  z-index: 10;
+}
+
+.menu-bottom-img {
+  width: min(195px, 31vw); 
+  cursor: pointer;
+  transition: transform .12s, filter .12s;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 3px 10px rgba(0,0,0,.5));
+}
+.menu-bottom-img:active { transform: scale(.92); }
+
+/* ========== PANELS (modal) ========== */
+.panel-bg{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;animation:fadeIn .25s ease}
+.panel-bg.open{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.panel-box{
+  background:linear-gradient(160deg,#0d2a0d,#1a4a1a);border:3px solid #66cc44;border-radius:22px;
+  padding:24px 20px;max-width:min(500px,94vw);width:100%;max-height:88vh;overflow-y:auto;
+  box-shadow:0 0 60px rgba(80,200,40,.3);position:relative;
+}
+.panel-title{font-size:clamp(20px,5vw,28px);font-weight:900;color:#88ff44;text-align:center;margin-bottom:18px;text-shadow:0 0 12px rgba(100,255,60,.4)}
+.panel-close{position:absolute;top:10px;right:14px;font-size:22px;background:none;border:none;color:#aaa;cursor:pointer;line-height:1;-webkit-tap-highlight-color:transparent}
+.panel-close:hover{color:#fff}
+
+/* settings */
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.settings-label{font-size:clamp(14px,3.5vw,17px);color:#cceecc}
+.toggle-wrap{position:relative;width:52px;height:26px;flex-shrink:0}
+.toggle-wrap input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;border-radius:26px;background:#444;cursor:pointer;transition:.3s}
+.toggle-slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle-wrap input:checked+.toggle-slider{background:#44cc22}
+.toggle-wrap input:checked+.toggle-slider:before{transform:translateX(26px)}
+
+/* how to play */
+.how-rule{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.how-icon{font-size:24px;flex-shrink:0;margin-top:2px}
+.how-text{font-size:clamp(12px,2.8vw,14px);color:#cceecc;line-height:1.65}
+.how-text b{color:#ffdd44}
+
+/* ========== GAME SCREEN ========== */
+#gameScreen{background:#1a3a1a;flex-direction:column;padding:0}
+.game-bg{
+  position:absolute;inset:0;background-size:cover;background-position:center;
+  transition:background-image .5s;
+}
+.game-content{position:relative;z-index:2;width:100%;height:100%;display:flex;flex-direction:column;padding:6px 6px 4px}
+
+.hud{display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:rgba(0,0,0,.55);border-radius:10px;margin-bottom:6px;color:#fff;flex-shrink:0;z-index:50;}
+.score-box{font-size:clamp(14px,3.5vw,20px);font-weight:900;color:#ffdd44;}
+.walnut-box{font-size:clamp(14px,3.5vw,18px);font-weight:900;color:#ffb84d;background:rgba(0,0,0,0.6);padding:2px 10px;border-radius:8px;border:2px solid #8b5a2b;transition:opacity 0.3s;}
+.level-box{font-size:clamp(11px,2.5vw,14px);color:#aaffaa;font-weight:700;text-align:center}
+.hp-box{display:flex;gap:2px;font-size:clamp(16px,3.5vw,22px)}
+
+.game-area{
+  flex:1;position:relative;overflow:hidden;
+  border-radius:14px;border:3px solid #4a7a2c;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);
+  transition:border-color .15s,box-shadow .15s;min-height:0;
+}
+.game-area.danger{border-color:#ff0000;box-shadow:0 0 28px rgba(255,0,0,.8)}
+
+.lane-line{position:absolute;left:25%;right:0;height:2px;background:rgba(0,0,0,.07)}
+
+.plant-col{
+  position:absolute;left:0;top:0;width:100%;height:100%;
+  background:transparent;border:none;pointer-events:none;z-index:10;
+}
+
+.plant-img{
+  position:absolute;
+  left: 15%; 
+  width: clamp(150px, 22vw, 240px); 
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.6));
+  animation: sway 2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+#p0 { top: 9%; }
+#p1 { top: 35%; }
+#p2 { top: 59%; }
+
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.sunflower-shoot{animation:shootPulse .3s ease !important}
+@keyframes shootPulse{0%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.15) rotate(5deg)}100%{transform:scale(1) rotate(-3deg)}}
+
+.pea{position:absolute;width:45px;height:45px;background:radial-gradient(circle at 35% 35%,#aaff44,#44aa00);border-radius:50%;box-shadow:0 0 24px #88ff44;pointer-events:none;z-index:15;transform:translate(-50%, -50%);}
+
+.zombie-entity{position:absolute;display:flex;flex-direction:column;align-items:center;transition:left 0.05s linear;will-change:left; z-index: 20;}
+.zombie-word{
+  background:rgba(0,0,0,.8);color:#fff;border-radius:8px;padding:4px 10px;
+  font-size:clamp(16px,4vw,24px);font-weight:700;letter-spacing:1.5px;margin-bottom:4px;
+  border:2px solid #ffcc00;white-space:nowrap;z-index: 100;
+  transform:translateZ(0);backface-visibility:hidden;-webkit-font-smoothing:antialiased;
+}
+.zombie-word .typed{color:#66ff66}.zombie-word .remain{color:#fff}
+
+.zombie-sprite{width:clamp(90px,20vw,150px);height:clamp(90px,20vw,150px);object-fit:contain;animation:zombieBounce .6s ease-in-out infinite alternate;filter:drop-shadow(0 2px 5px rgba(0,0,0,.7))}
+
+.special-zombie{
+  width:clamp(280px, 60vw, 440px);
+  height:clamp(280px, 60vw, 440px);
+  margin-top:-50px; 
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.8))
+}
+
+@keyframes zombieBounce{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+.zombie-sprite.frozen{filter:drop-shadow(0 2px 5px rgba(0,0,0,.7)) sepia(1) hue-rotate(180deg) saturate(2) brightness(1.3);animation:none}
+.freeze-timer{font-size:10px;color:#88eeff;font-weight:700;text-shadow:0 0 5px #00ccff;margin-top:1px}
+
+/* ========== BOSS SYSTEM ========== */
+.boss-entity {
+    position:absolute;
+    inset:0; 
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:20;
+}
+.boss-aura {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(600px, 95vw);
+    height: min(600px, 95vw);
+    border-radius: 50%;
+    z-index: 1;
+    background: radial-gradient(circle, rgba(255,215,0,0.8) 0%, rgba(255,140,0,0.5) 40%, transparent 75%);
+    animation: auraPulse 1s ease-in-out infinite alternate;
+}
+@keyframes auraPulse {
+    from { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; }
+    to { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
+.boss-img {
+    height:75vh; 
+    max-width:90vw;
+    object-fit:contain;
+    z-index: 10;
+    animation:bossHover 2s ease-in-out infinite alternate; 
+}
+@keyframes bossHover{from{transform:translateY(0)}to{transform:translateY(-15px)}}
+
+.boss-char-box {
+    position:absolute;
+    top:60%; 
+    left:55%; 
+    transform: translate(-50%, -50%); 
+    z-index: 100;
+    background:rgba(0,0,0,.95);
+    color:#ffcc00;
+    border:5px solid #ffcc00;
+    border-radius:20px;
+    padding:20px 50px; 
+    line-height: 1.5;  
+    font-size:clamp(50px,12vw,90px); 
+    font-weight:900;
+    text-shadow:0 0 20px gold;
+    box-shadow:0 0 30px rgba(255, 215, 0, 0.8);
+    transition: color 0.15s, border-color 0.15s, text-shadow 0.15s;
+}
+
+@keyframes bossWrongFlash {
+    0%, 100% { transform: translate(-50%, -50%) translateX(0); color:#ff4444; border-color:#ff4444; }
+    25% { transform: translate(-50%, -50%) translateX(-12px); }
+    75% { transform: translate(-50%, -50%) translateX(12px); }
+}
+.flash-boss-wrong {
+    animation: bossWrongFlash 0.3s ease-out;
+    color: #ff4444 !important;
+    border-color: #ff4444 !important;
+    text-shadow: 0 0 20px red !important;
+}
+
+.boss-hp-wrap {
+    width:clamp(200px,40vw,400px);
+    height:25px;
+    background:rgba(0,0,0,0.8);
+    border:3px solid #fff;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 0 15px rgba(0,0,0,0.8);
+    position:absolute;
+    bottom:6%; 
+    z-index: 100;
+}
+.boss-hp-fill {height:100%;width:60%;background:gold;transition:width 0.3s, background 0.3s;}
+
+.boss-sunflower {
+    position: absolute;
+    bottom: 2%;
+    left: 2%; 
+    width: clamp(210px, 40vw, 390px);
+    height: auto;
+    z-index: 25;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,.8));
+    animation: sway 2s ease-in-out infinite;
+}
+
+/* ========== FIRE EFFECT ========== */
+.boss-burning {
+    animation: burnShake 0.4s infinite, burnColor 2s forwards !important;
+}
+@keyframes burnShake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-8px) rotate(-2deg); }
+    50% { transform: translateX(8px) rotate(2deg); }
+    75% { transform: translateX(-8px) rotate(-2deg); }
+    100% { transform: translateX(0); }
+}
+@keyframes burnColor {
+    from { filter: drop-shadow(0 0 20px gold); }
+    to { filter: sepia(1) hue-rotate(-20deg) saturate(5) brightness(0.8) drop-shadow(0 0 50px red) drop-shadow(0 0 100px orange); }
+}
+.fire-flames {
+    position: absolute;
+    bottom: 10%;
+    animation: flamesRise 1.2s ease-in infinite;
+    pointer-events: none;
+    z-index: 110;
+    text-shadow: 0 0 20px red;
+}
+@keyframes flamesRise {
+    0% { transform: translateY(0) scale(0.8) rotate(-10deg); opacity: 0.8; }
+    50% { transform: translateY(-150px) scale(1.5) rotate(10deg); opacity: 1; }
+    100% { transform: translateY(-300px) scale(2) rotate(-10deg); opacity: 0; }
+}
+
+/* ========== GIANT WALNUT ========== */
+.giant-walnut {
+    position: absolute;
+    left: 35%;
+    width: clamp(120px, 24vw, 200px); 
+    height: auto;
+    z-index: 12; 
+    transform: translate(-50%, -50%);
+    animation: dropWalnut 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    filter: drop-shadow(0 8px 15px rgba(0,0,0,0.8));
+}
+@keyframes dropWalnut {
+    0% { transform: translate(-50%, -400%); opacity: 0; }
+    100% { transform: translate(-50%, -50%); opacity: 1; }
+}
+.giant-walnut.fade-out {
+    animation: fadeWalnut 0.5s forwards;
+}
+@keyframes fadeWalnut {
+    to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+/* gift */
+.gift-entity{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:pointer;z-index:12;animation:giftBounce .6s ease-in-out infinite alternate}
+@keyframes giftBounce{from{transform:translateY(0) translateX(-50%)}to{transform:translateY(-6px) translateX(-50%)}}
+.gift-glow{position:absolute;width:clamp(50px,10vw,72px);height:clamp(50px,10vw,72px);border-radius:50%;background:transparent;border:3px solid rgba(255,220,0,.9);box-shadow:0 0 12px 4px rgba(255,200,0,.7),0 0 26px 8px rgba(255,150,0,.4);animation:glowPulse 1s ease-in-out infinite alternate;pointer-events:none}
+@keyframes glowPulse{from{box-shadow:0 0 10px 4px rgba(255,200,0,.7),0 0 22px 8px rgba(255,150,0,.4)}to{box-shadow:0 0 22px 10px rgba(255,230,80,1),0 0 44px 18px rgba(255,180,0,.7)}}
+.gift-type-word{background:rgba(0,0,0,.82);color:#fff;border-radius:6px;padding:2px 8px;font-size:clamp(11px,2.5vw,14px);font-weight:900;border:2px solid #00eeff;white-space:nowrap;margin-bottom:2px;position:relative;z-index:2;box-shadow:0 0 7px rgba(0,220,255,.5);letter-spacing:1px}
+.gift-typed{color:#00ffee}.gift-remain{color:#fff}
+.gift-icon{font-size:clamp(24px,5vw,36px);position:relative;z-index:1;filter:drop-shadow(0 0 7px rgba(255,200,0,1))}
+
+.explosion{position:absolute;font-size:clamp(26px,5vw,38px);animation:explode .6s ease-out forwards;z-index:30;pointer-events:none}
+@keyframes explode{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}50%{transform:translate(-50%,-50%) scale(1.8);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
+.boss-explode { font-size: 200px; animation: bossExplode 1.2s forwards; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index:150; }
+@keyframes bossExplode{0%{transform:translate(-50%,-50%) scale(0.5);opacity:1}50%{transform:translate(-50%,-50%) scale(2.5);opacity:1}100%{transform:translate(-50%,-50%) scale(3);opacity:0}}
+
+.freeze-burst{position:absolute;font-size:clamp(26px,5vw,38px);animation:freezeBurst .7s ease-out forwards;z-index:20;pointer-events:none}
+@keyframes freezeBurst{0%{transform:translate(-50%,-50%) scale(.4);opacity:1}60%{transform:translate(-50%,-50%) scale(2);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
+
+.input-area{flex-shrink:0;padding:5px 4px 4px; z-index:50;}
+.thai-input{width:100%;padding:10px 14px;font-size:clamp(15px,3.5vw,20px);font-family:'Kanit',sans-serif;border-radius:10px;border:3px solid #ffcc00;background:rgba(0,0,0,.72);color:#fff;outline:none;caret-color:#ffcc00;box-shadow:0 0 10px rgba(255,204,0,.3);transition:border-color .15s,box-shadow .15s,color .15s;-webkit-appearance:none}
+.thai-input.match{border-color:#66ff66;box-shadow:0 0 18px rgba(100,255,100,.5); color:#66ff66;}
+.thai-input.wrong{border-color:#ff4444;box-shadow:0 0 18px rgba(255,0,0,.6); color:#ff4444;}
+.hint{color:rgba(255,255,255,.45);font-size:11px;text-align:center;padding:2px 0 3px}
+
+/* ========== SUMMARY SCREEN ========== */
+#summaryScreen{background:rgba(0,0,0,.85)}
+.summary-box{background:linear-gradient(160deg,#0d2a0d,#1a4a1a);border:3px solid #66cc44;border-radius:22px;padding:30px 28px;max-width:min(400px,92vw);width:100%;text-align:center;box-shadow:0 0 60px rgba(80,200,40,.3)}
+.summary-title{font-size:clamp(24px,6vw,34px);font-weight:900;color:#88ff44;margin-bottom:6px}
+.summary-score{font-size:clamp(28px,7vw,40px);font-weight:900;color:#ffdd44;margin:10px 0 4px}
+.summary-sub{font-size:clamp(13px,3vw,16px);color:#aaffaa;margin-bottom:20px}
+.summary-btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.s-btn{padding:11px 26px;font-size:clamp(14px,3.5vw,18px);font-family:'Kanit',sans-serif;font-weight:700;border-radius:12px;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .1s}
+.s-btn:active{transform:scale(.95)}
+.s-btn-next{background:linear-gradient(135deg,#ffdd00,#ff8800);color:#3a1a00;box-shadow:0 3px 14px rgba(255,180,0,.5)}
+.s-btn-retry{background:linear-gradient(135deg,#ff6600,#ff3300);color:#fff;box-shadow:0 3px 14px rgba(255,100,0,.5)}
+.s-btn-menu{background:linear-gradient(135deg,#2266cc,#114488);color:#fff;box-shadow:0 3px 14px rgba(30,100,220,.4)}
+</style>
+</head>
+<body>
+
+<div id="menuScreen" class="screen active">
+  <div class="menu-inner">
+    <div class="menu-start-wrap">
+      <img class="menu-start-img"
+        src="https://i.postimg.cc/GmKH39Wq/2-20260603-121437-0001.png"
+        alt="เริ่มเกม"
+        onclick="startGame(1)"/>
+    </div>
+    <div class="menu-bottom">
+      <img class="menu-bottom-img"
+        src="https://i.postimg.cc/ncv1kYmV/5-20260603-121437-0004.png"
+        alt="ตั้งค่า"
+        onclick="openPanel('settingsPanel')"/>
+      <img class="menu-bottom-img"
+        src="https://i.postimg.cc/mZ7Z2tM1/3-20260603-121437-0002.png"
+        alt="วิธีเล่น"
+        onclick="openPanel('howPanel')"/>
+    </div>
+  </div>
+</div>
+
+<div id="gameScreen" class="screen">
+  <div class="game-bg" id="gameBg"></div>
+  <div class="game-content">
+    <div class="hud">
+      <div style="display:flex; gap:10px; align-items:center;">
+        <div class="score-box" id="scoreEl">⭐ 0</div>
+        <div class="walnut-box" id="walnutEl">🌰 x5</div>
+      </div>
+      <div class="level-box" id="levelEl">ด่าน 1</div>
+      <div class="hp-box" id="hpEl">❤️❤️❤️</div>
+    </div>
+    <div class="game-area" id="gameArea">
+      <div class="lane-line" id="lane0"></div>
+      <div class="lane-line" id="lane1"></div>
+      <div class="lane-line" id="lane2"></div>
+      
+      <div class="plant-col" id="normalPlantCol">
+        <img class="plant-img" id="p0" src="https://i.postimg.cc/GhcyK753/2.png" alt="sunflower"/>
+        <img class="plant-img" id="p1" src="https://i.postimg.cc/GhcyK753/2.png" alt="sunflower"/>
+        <img class="plant-img" id="p2" src="https://i.postimg.cc/GhcyK753/2.png" alt="sunflower"/>
+      </div>
+
+    </div>
+    <div class="input-area">
+      <input type="text" class="thai-input" id="thaiInput" placeholder="พิมพ์คำที่เห็น..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" disabled/>
+      <div class="hint">💡 พิมพ์คำเหนือซอมบี้ | 🎁 พิมพ์บนกล่องรับพลัง | กั้นวอลนัท Spacebar</div>
+    </div>
+  </div>
+</div>
+
+<div id="summaryScreen" class="screen">
+  <div class="summary-box">
+    <div class="summary-title" id="sumTitle">ผ่านด่าน! 🎉</div>
+    <div class="summary-score" id="sumScore">0 คะแนน</div>
+    <div class="summary-sub" id="sumSub">ด่าน 1 สำเร็จ</div>
+    <div class="summary-btn-row">
+      <button class="s-btn s-btn-next"  id="btnNext"  onclick="goNext()">ด่านต่อไป ▶</button>
+      <button class="s-btn s-btn-retry" onclick="retryLevel()">🔄 เล่นใหม่</button>
+      <button class="s-btn s-btn-menu"  onclick="goMenu()">🏠 เมนู</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel-bg" id="settingsPanel">
+  <div class="panel-box">
+    <button class="panel-close" onclick="closePanel('settingsPanel')">✕</button>
+    <div class="panel-title">⚙️ ตั้งค่า</div>
+    <div class="settings-row">
+      <span class="settings-label">🔊 เสียงเอฟเฟกต์</span>
+      <label class="toggle-wrap"><input type="checkbox" id="sfxToggle" checked onchange="sfxOn=this.checked"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label">🎵 เพลงประกอบ</span>
+      <label class="toggle-wrap"><input type="checkbox" id="bgmToggle" checked onchange="bgmOn=this.checked"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="settings-row" style="border-bottom:none">
+      <span class="settings-label">📳 การสั่น</span>
+      <label class="toggle-wrap"><input type="checkbox" id="vibToggle" checked onchange="vibOn=this.checked"><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+</div>
+
+<div class="panel-bg" id="howPanel">
+  <div class="panel-box" style="max-height:88vh;overflow-y:auto">
+    <button class="panel-close" onclick="closePanel('howPanel')">✕</button>
+    <div class="panel-title">📖 วิธีเล่น</div>
+    <div class="how-rule"><div class="how-icon">⌨️</div><div class="how-text"><b>พิมพ์คำ</b>ที่ปรากฏเหนือหัวซอมบี้ให้ถูกต้อง<br/>ดอกทานตะวันจะยิงกระสุนไปทำลายซอมบี้ทันที<br/>ตัวอักษรสีเขียว = พิมพ์ถูก | รีเซ็ตเองเมื่อพิมพ์ผิด</div></div>
+    <div class="how-rule"><div class="how-icon">🛡️</div><div class="how-text"><b>ซอมบี้พิเศษ (ตัวใหญ่)</b><br/>อึดกว่าปกติ! ต้องพิมพ์ให้ถูก <b>2 คำ</b> ถีงจะกำจัดได้ (โผล่ด่าน 3 เป็นต้นไป)</div></div>
+    <div class="how-rule"><div class="how-icon">🌰</div><div class="how-text"><b>กำแพงวอลนัท (Spacebar)</b><br/>กดปุ่ม <b>Spacebar</b> เพื่อเรียกวอลนัทยักษ์มาบล็อกเลนทั้ง 3 เป็นเวลา 5 วินาที<br/>(เพื่อให้มีเวลาพิมพ์เคลียร์ซอมบี้ ใช้ได้จำกัด <b>5 ครั้ง</b> ตลอดทั้งเกม!)</div></div>
+    <div class="how-rule"><div class="how-icon">🧟</div><div class="how-text"><b>ห้ามให้ซอมบี้ผ่านแนวป้องกัน!</b><br/>ซอมบี้ข้ามถึงเขตบ้าน (ซ้ายมือ) = เสียชีวิต 1 ครั้ง<br/>มีชีวิตทั้งหมด <b>❤️❤️❤️ 3 ครั้ง</b> — หมดแล้วจบเกม</div></div>
+    <div class="how-rule"><div class="how-icon">👑</div><div class="how-text"><b>ด่านบอส (ด่าน 5)</b><br/>สุ่มตัวอักษร 1 ตัวให้พิมพ์ทีละครั้ง ต้องพิมพ์ให้ถูกครบ 15 ครั้งเพื่อผ่านด่าน!<br/>หากพิมพ์ผิด พลังบอสจะสูงขึ้นระวังด้วย!</div></div>
+    <div class="how-rule"><div class="how-icon">🎁</div><div class="how-text"><b>กล่องของขวัญ</b> โผล่กลางด่านละ 1 ครั้ง มี 2 กล่องให้เลือก<br/>พิมพ์คำบนกล่องเพื่อรับพลัง — ไม่รู้ว่าจะได้อะไร ลองดู!<br/>เปิดกล่องใดกล่องหนึ่ง กล่องอีกใบจะหายไป</div></div>
+    <div class="how-rule" style="border-bottom:none"><div class="how-icon">⭐</div><div class="how-text"><b>คะแนน</b><br/>กำจัดซอมบี้ +10 คะแนน<br/>ใช้พลังระเบิดกล่องของขวัญ +10 ต่อตัวที่ถูกทำลาย</div></div>
+  </div>
+</div>
+
+<script>
+// ============ WORD BANKS ============
+const LEVEL_WORDS = {
+  1:["สว่าง","กว้าง","หวาด","สอด","สวด","ว่าง","ห่าง","กวาด","สง่า","ก้าง"],
+  2:["วาด","วาง","กอด","หาด","หวง","หว่า","หงา","สาง","สาด","ฟาด"],
+  3:["กว่า","กวาง","หว่าง","สาวก","หกว่าว","สหงา","ด่าง","ดวด","ดวง","สวง"],
+  4:["วาดา","หงวด","กว่าง","ห้าง","หวอด","เวหา","สวาด","เสกดาว","เก่ากว่า"],
+  5:["ฟาดงา","ฟาดงวง","สาวงง","กดดาว","หาหาด","ดาวดก","ฟ้าสวด","กว้าง","ห้างเก่า"]
+};
+// โควต้าซอมบี้ต่อด่าน (จำนวนซอมบี้ทั้งหมดที่ต้องกำจัด)
+const LEVEL_QUOTA = {1:8, 2:9, 3:10, 4:11, 5:12};
+// โควต้าซอมบี้พิเศษต่อด่าน (ซ่อนอยู่ในโควต้ารวม)
+const SPECIAL_QUOTA = {1:0, 2:0, 3:1, 4:2, 5:3};
+
+const LANE_Y=[18,44,68];
+const GIFT_WORDS_POOL=["กด","กา"];
+
+let zombies=[],gifts=[],score=0,hp=3,level=1,highScore=0;
+let gameActive=false,zombieIdCounter=0,giftIdCounter=0;
+let spawnTimer=null,moveTimer=null,giftTimer=null;
+let allFrozen=false, wordsKilledThisLevel=0, giftSpawnedThisLevel=false;
+let zombiesSpawnedThisLevel=0, specialZombiesSpawnedThisLevel=0;
+let currentLevel=1,levelScore=0;
+let sfxOn=true,bgmOn=true,vibOn=true;
+let levelWordPool=[];
+
+// Walnut State
+let walnutsRemaining = 5;
+let walnutActive = false;
+let walnutTimer = null;
+
+// Boss State
+let isBossPhase = false;
+let bossHP = 15;
+let bossMaxHP = 25; 
+let currentBossChar = '';
+let levelChars = [];
+
+const gameArea=document.getElementById('gameArea');
+const thaiInput=document.getElementById('thaiInput');
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function openPanel(id){
+  document.getElementById(id).classList.add('open');
+}
+function closePanel(id){document.getElementById(id).classList.remove('open')}
+
+function goMenu(){showScreen('menuScreen')}
+function retryLevel(){startGame(currentLevel)}
+function goNext(){
+  const next=currentLevel+1;
+  if(next>5){showScreen('menuScreen')}else{startGame(next)}
+}
+
+function startGame(lvl){
+  currentLevel=lvl||1; level=currentLevel; score=0; levelScore=0; hp=3;
+  zombieIdCounter=0; giftIdCounter=0; allFrozen=false;
+  wordsKilledThisLevel=0; giftSpawnedThisLevel=false;
+  zombiesSpawnedThisLevel=0; specialZombiesSpawnedThisLevel=0;
+  isBossPhase = false;
+
+  // วอลนัท โควต้า 5 ครั้งต่อเกม (เฉพาะด่าน 1)
+  if(currentLevel === 1) walnutsRemaining = 5;
+  walnutActive = false;
+  if(walnutTimer) clearTimeout(walnutTimer);
+  document.querySelectorAll('.walnut-clone').forEach(gw => gw.remove());
+
+  zombies.forEach(z=>z.el&&z.el.remove()); zombies=[];
+  gifts.forEach(g=>g.el&&g.el.remove()); gifts=[];
+  
+  const oldBoss = document.getElementById('bossZombie');
+  if(oldBoss) oldBoss.remove();
+  const oldBossSun = document.getElementById('bossSunflower');
+  if(oldBossSun) oldBossSun.remove();
+
+  document.getElementById('normalPlantCol').style.display = 'flex';
+  document.querySelectorAll('.lane-line').forEach(l => l.style.display = 'block');
+
+  // บังคับใช้พื้นหลังเดียวกันทุกด่าน (ฉากด่าน 1)
+  const bgEl=document.getElementById('gameBg');
+  bgEl.style.background="url('https://i.postimg.cc/1tkqdPzP/1780287479036.png') center/cover no-repeat";
+
+  LANE_Y.forEach((y,i)=>{document.getElementById('lane'+i).style.top=(y+14)+'%'});
+
+  const src=LEVEL_WORDS[level]||LEVEL_WORDS[1];
+  levelWordPool=[...src].sort(()=>Math.random()-.5);
+
+  gameActive=true;
+  thaiInput.value=''; thaiInput.disabled=false;
+  updateHUD(); restartTimers();
+  showScreen('gameScreen');
+  setTimeout(()=>thaiInput.focus(),200);
+  spawnZombie();
+}
+
+function updateHUD(){
+  document.getElementById('scoreEl').textContent='⭐ '+score;
+  const wEl = document.getElementById('walnutEl');
+  if(wEl) {
+      wEl.textContent = '🌰 x' + walnutsRemaining;
+      wEl.style.opacity = walnutsRemaining > 0 ? '1' : '0.4';
+  }
+  const quota=LEVEL_QUOTA[level]||10;
+  if(!isBossPhase) {
+      document.getElementById('levelEl').textContent=`ด่าน ${level}  (${wordsKilledThisLevel}/${quota})`;
+  } else {
+      document.getElementById('levelEl').textContent=`ด่าน ${level} (บอส!)`;
+  }
+  let h=''; for(let i=0;i<3;i++) h+=`<span style="opacity:${i<hp?1:.2};transition:opacity .3s">❤️</span>`;
+  document.getElementById('hpEl').innerHTML=h;
+}
+
+function checkLevelComplete(){
+  const quota=LEVEL_QUOTA[level]||10;
+  if(wordsKilledThisLevel>=quota && !isBossPhase){
+    if (level === 5) {
+        startBossPhase(); 
+    } else {
+        gameActive = false;
+        clearInterval(spawnTimer);
+        clearInterval(moveTimer);
+        clearTimeout(giftTimer);
+        thaiInput.disabled = true;
+        showSummary();
+    }
+  }
+}
+
+function showSummary(){
+  document.getElementById('sumTitle').textContent=level<5?'ผ่านด่านแล้ว! 🎉':'สำเร็จทุกด่าน! 🏆';
+  document.getElementById('sumScore').textContent=score+' คะแนน';
+  if(level === 5) {
+      document.getElementById('sumSub').textContent=`ด่าน ${level} สำเร็จ — ปราบบอสเรียบร้อย!`;
+  } else {
+      document.getElementById('sumSub').textContent=`ด่าน ${level} สำเร็จ!`;
+  }
+  const btnNext=document.getElementById('btnNext');
+  if(level>=5){btnNext.style.display='none'}else{btnNext.style.display='';btnNext.textContent=`ด่าน ${level+1} ▶`}
+  if(score>highScore) highScore=score;
+  showScreen('summaryScreen');
+}
+
+function restartTimers(){
+  clearInterval(spawnTimer);clearInterval(moveTimer);clearTimeout(giftTimer);
+  const si=Math.max(1200,3400-(level-1)*220);
+  spawnTimer=setInterval(spawnZombie,si);
+  moveTimer=setInterval(moveZombies,50);
+  const quota=LEVEL_QUOTA[level]||10;
+  giftTimer=setTimeout(spawnGift,Math.max(6000,si*quota*0.4));
+}
+
+function getSpeed(){return Math.max(0.18, 0.45-(level-1)*0.03) * 0.7;}
+function getMaxZ(){return Math.min(5,2+Math.floor(level/2))}
+function pickWord(){
+  if(!levelWordPool.length) levelWordPool=[...LEVEL_WORDS[level]||LEVEL_WORDS[1]].sort(()=>Math.random()-.5);
+  return levelWordPool.pop();
+}
+
+function spawnZombie(){
+  if(!gameActive || isBossPhase) return;
+  const maxQuota = LEVEL_QUOTA[level] || 10;
+
+  if(zombies.length>=getMaxZ()) return;
+  const usedLanes=zombies.map(z=>z.lane);
+  const avail=LANE_Y.map((_,i)=>i).filter(i=>!usedLanes.includes(i));
+  if(!avail.length) return;
+  const lane=avail[Math.floor(Math.random()*avail.length)];
+  
+  const targetSpecial = SPECIAL_QUOTA[level] || 0;
+  const remainingSpecial = targetSpecial - specialZombiesSpawnedThisLevel;
+  const remainingTotal = maxQuota - wordsKilledThisLevel;
+
+  let isSpecial = false;
+  if (remainingSpecial > 0) {
+      if (remainingSpecial >= remainingTotal) {
+          isSpecial = true; 
+      } else {
+          isSpecial = Math.random() < 0.35; 
+      }
+  }
+
+  if(isSpecial) specialZombiesSpawnedThisLevel++;
+
+  const word1 = pickWord();
+  const words = [word1];
+  if (isSpecial) words.push(pickWord()); 
+
+  const id=++zombieIdCounter;
+  const el=document.createElement('div');
+  el.className='zombie-entity'; el.id='z'+id;
+  el.style.cssText=`left:103%;top:${LANE_Y[lane]}%;transform:translateX(-50%)`;
+
+  const spriteSrc = isSpecial ? 'https://i.postimg.cc/MKWR66VT/d-sin-th-y-ngmi-di-t-ngch-x-(2).png' : 'https://i.postimg.cc/T1QTDqFZ/1780332918017-removebg-preview.png';
+  const spriteClass = isSpecial ? 'zombie-sprite special-zombie' : 'zombie-sprite';
+
+  el.innerHTML=`<div class="zombie-word"><span class="typed" id="zt${id}"></span><span class="remain" id="zr${id}">${word1}</span></div><img class="${spriteClass}" src="${spriteSrc}"/>`;
+  gameArea.appendChild(el);
+
+  zombies.push({id, lane, words, wordIndex: 0, word: word1, isSpecial, hp: isSpecial ? 2 : 1, x: 103, el, frozen: false});
+}
+
+function moveZombies(){
+  if(!gameActive || isBossPhase) return;
+  const speed=getSpeed();
+  const toRemove=[];
+  zombies.forEach(z=>{
+    if(z.frozen) return;
+
+    if (walnutActive && z.x > 35 && (z.x - speed) <= 35) {
+        z.x = 35; // ติดกำแพงวอลนัท
+    } else if (walnutActive && z.x === 35) {
+        // ค้างอยู่ที่เดิม
+    } else {
+        z.x -= speed;
+    }
+
+    z.el.style.left=z.x+'%';
+    if(z.x<=22) toRemove.push(z.id); 
+  });
+  if(toRemove.length){
+    hp-=toRemove.length; if(hp<0)hp=0;
+    toRemove.forEach(id=>removeZombie(id));
+    updateHUD(); flashDanger();
+    if(hp<=0){endGame()}
+  }
+}
+
+function removeZombie(id){
+  zombies=zombies.filter(z=>{if(z.id===id){z.el&&z.el.remove();return false}return true});
+}
+
+function useWalnut() {
+    if (!gameActive || isBossPhase || walnutsRemaining <= 0 || walnutActive) return;
+    walnutsRemaining--;
+    updateHUD();
+
+    walnutActive = true;
+
+    // สร้างวอลนัท 3 ลูก แยกกันทีละเลน
+    LANE_Y.forEach((laneY, index) => {
+        const walnutImg = document.createElement('img');
+        walnutImg.src = 'https://i.postimg.cc/Pr1BnkYQ/d-sin-th-y-ngmi-di-t-ngch-x-(3).png';
+        walnutImg.className = 'giant-walnut walnut-clone';
+        // กำหนดตำแหน่ง Y ให้พอดีกับเท้าซอมบี้ในเลนนั้น
+        walnutImg.style.top = (laneY + 10) + '%'; 
+        gameArea.appendChild(walnutImg);
+    });
+
+    if (walnutTimer) clearTimeout(walnutTimer);
+    walnutTimer = setTimeout(() => {
+        walnutActive = false;
+        document.querySelectorAll('.walnut-clone').forEach(gw => {
+            gw.classList.add('fade-out');
+            setTimeout(() => gw.remove(), 500);
+        });
+    }, 5000);
+}
+
+function shootPea(lane,target, isBossTarget = false){
+  let plantEl;
+  let sx;
+  
+  if(isBossTarget) {
+      plantEl = document.getElementById('bossSunflower');
+      sx = 15; 
+  } else {
+      plantEl = document.getElementById('p'+lane);
+      sx = 24; 
+  }
+
+  if(plantEl){plantEl.classList.add('sunflower-shoot');setTimeout(()=>plantEl.classList.remove('sunflower-shoot'),350)}
+  const pea=document.createElement('div');pea.className='pea';
+  
+  if (isBossTarget) {
+      pea.style.cssText=`bottom:15%;left:10%`; 
+  } else {
+      const laTop=LANE_Y[lane]+12;pea.style.cssText=`top:${laTop}%;left:24%`;
+  }
+  
+  gameArea.appendChild(pea);
+  
+  let targetX = isBossTarget ? 50 : target.x; 
+  const dur=Math.max(180, isBossTarget ? 300 : (targetX-sx)/92*420);
+  const t0=performance.now();
+  
+  function ani(){
+    const p=Math.min((performance.now()-t0)/dur,1);
+    
+    if (isBossTarget) {
+        pea.style.left = (10 + p*(50-10)) + '%';
+        pea.style.bottom = (15 + p*(50-15)) + '%';
+    } else {
+        pea.style.left=(sx+p*(targetX-sx))+'%';
+    }
+    
+    if(p>=1){
+        pea.remove();
+        if(isBossTarget) {
+            addExplosion(50, null, true); 
+            score+=20;
+        } else {
+            target.hp--;
+            if(target.hp <= 0) {
+                addExplosion(target.x,target.lane);
+                removeZombie(target.id);
+                score += target.isSpecial ? 20 : 10;
+                wordsKilledThisLevel++;
+                checkLevelComplete();
+            } else {
+                const e=document.createElement('div');e.className='explosion';
+                e.style.cssText=`left:${target.x}%;top:${LANE_Y[target.lane]}%;transform:translate(-50%, -50%) scale(0.6);`;
+                e.textContent='💥';
+                gameArea.appendChild(e);setTimeout(()=>e.remove(), 400);
+
+                if(target.el) {
+                    const img = target.el.querySelector('img');
+                    if(img) {
+                        img.style.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg) saturate(3)';
+                        setTimeout(() => { img.style.filter = ''; }, 150);
+                    }
+                }
+            }
+        }
+        updateHUD();
+        return;
+    }
+    requestAnimationFrame(ani);
+  }
+  requestAnimationFrame(ani);
+}
+
+function pickGiftWords(){
+    const s=[...GIFT_WORDS_POOL].sort(()=>Math.random()-.5);
+    return[s[0],s[1]];
+}
+
+function spawnGift(){
+  if(!gameActive || isBossPhase || gifts.length>0 || giftSpawnedThisLevel) return;
+  giftSpawnedThisLevel=true;
+  const[wA,wB]=pickGiftWords();
+  const types=['freeze','bomb'].sort(()=>Math.random()-.5);
+  const lanes=[0,1,2].sort(()=>Math.random()-.5).slice(0,2);
+  lanes.forEach((lane,i)=>{
+    const word=i===0?wA:wB; const type=types[i];
+    const x=30+i*30+Math.random()*8; const id=++giftIdCounter;
+    const el=document.createElement('div');el.className='gift-entity';el.id='gift'+id;
+    el.style.cssText=`left:${x}%;top:${LANE_Y[lane]-6}%`;
+    el.innerHTML=`<div class="gift-glow"></div><div class="gift-type-word" id="gw${id}"><span class="gift-typed" id="gt${id}"></span><span class="gift-remain" id="gr${id}">${word}</span></div><div class="gift-icon">🎁</div>`;
+    gameArea.appendChild(el);
+    const obj={id,el,lane,word,type};gifts.push(obj);
+    obj.timeout=setTimeout(()=>removeGift(id),9000);
+  });
+}
+
+function removeGift(id){
+  gifts=gifts.filter(g=>{if(g.id===id){clearTimeout(g.timeout);g.el&&g.el.remove();return false}return true});
+}
+
+function collectGift(g){
+  if(!gameActive) return;
+  const type=g.type;
+  [...gifts].forEach(x=>removeGift(x.id));
+  if(type==='freeze'){freezeAll(5000);addBurst('❄️','rgba(0,200,255,.8)')}
+  else{bombAll()}
+}
+
+function freezeAll(dur){
+  if(allFrozen) return; allFrozen=true;
+  zombies.forEach(z=>{
+    z.frozen=true;
+    const sp=z.el&&z.el.querySelector('.zombie-sprite');
+    if(sp) sp.classList.add('frozen');
+    showFreezeTimer(z,dur);
+  });
+  setTimeout(()=>{
+    allFrozen=false;
+    zombies.forEach(z=>{z.frozen=false;const sp=z.el&&z.el.querySelector('.zombie-sprite');if(sp)sp.classList.remove('frozen');const ft=z.el&&z.el.querySelector('.freeze-timer');if(ft)ft.remove()});
+  },dur);
+}
+
+function showFreezeTimer(z,dur){
+  let ft=z.el&&z.el.querySelector('.freeze-timer');
+  if(!ft){ft=document.createElement('div');ft.className='freeze-timer';z.el&&z.el.appendChild(ft)}
+  const end=Date.now()+dur;
+  const tick=()=>{if(!z.frozen){ft.remove();return}const left=Math.max(0,Math.ceil((end-Date.now())/1000));ft.textContent='❄️ '+left+'s';if(left>0)setTimeout(tick,500);else ft.remove()};
+  tick();
+}
+
+function bombAll(){
+  const toKill=[...zombies];
+  toKill.forEach(z=>{addExplosion(z.x,z.lane);removeZombie(z.id);score+= (z.isSpecial ? 20 : 10); wordsKilledThisLevel++;});
+  updateHUD(); checkLevelComplete();
+  addBurst('💥','rgba(255,100,0,.8)');
+}
+
+function addBurst(icon,color){
+  const b=document.createElement('div');b.className='freeze-burst';
+  b.style.cssText=`left:50%;top:50%;font-size:80px`;b.textContent=icon;
+  gameArea.appendChild(b);setTimeout(()=>b.remove(),800);
+}
+
+function addExplosion(x,lane, isBoss = false){
+  const e=document.createElement('div');e.className='explosion';
+  if(isBoss) {
+      e.style.cssText=`left:50%;top:50%;transform:translate(-50%, -50%)`;
+  } else {
+      e.style.cssText=`left:${x}%;top:${LANE_Y[lane]}%;transform:translate(-50%, -50%)`;
+  }
+  e.textContent='💥';
+  gameArea.appendChild(e);setTimeout(()=>e.remove(),700);
+}
+
+function flashDanger(){gameArea.classList.add('danger');setTimeout(()=>gameArea.classList.remove('danger'),300)}
+function flashInput(cls){thaiInput.classList.remove('match','wrong');thaiInput.classList.add(cls);setTimeout(()=>thaiInput.classList.remove(cls),300)}
+
+function endGame(){
+  gameActive=false;
+  clearInterval(spawnTimer);clearInterval(moveTimer);clearTimeout(giftTimer);
+  thaiInput.disabled=true;
+  if(score>highScore)highScore=score;
+  document.getElementById('sumTitle').textContent='เกมจบแล้ว 💀';
+  document.getElementById('sumScore').textContent=score+' คะแนน';
+  if(isBoss
